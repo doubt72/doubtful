@@ -409,6 +409,74 @@ pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
         _ => panic!("< : must compare numbers"),
       }
     },
+    "substr" => {
+      expect_args(3, &params, id);
+      match params[0] {
+        Evaluation::String(ref s) => {
+          match params[1] {
+            Evaluation::Integer(start) => {
+              match params[2] {
+                Evaluation::Integer(len) => {
+                  let chars = s.chars();
+                  if start as usize >= s.len() {
+                    Evaluation::String("".to_string())
+                  } else if (start + len) as usize >= s.len() {
+                    let rc = chars.skip(start as usize).take(s.len() - start as usize).collect();
+                    Evaluation::String(rc)
+                  } else {
+                    let rc = chars.skip(start as usize).take(len as usize).collect();
+                    Evaluation::String(rc)
+                  }
+                },
+                _ => panic!("substr : length must be integer"),
+              }
+            },
+            _ => panic!("substr : starting index must be integer"),
+          }
+        },
+        _ => panic!("substr : first argument must be string"),
+      }
+    },
+    "strlen" => {
+      expect_args(1, &params, id);
+      match params[0] {
+        Evaluation::String(ref s) => {
+          Evaluation::Integer(s.chars().count() as i64)
+        },
+        _ => panic!("strlen : argument must be string"),
+      }
+    },
+    "car" => {
+      expect_args(1, &params, id);
+      match params[0] {
+        Evaluation::List(ref list) => {
+          match list.items.first() {
+            Some(item) => {
+              item.clone()
+            },
+            _ => {
+              panic!("car : attempt to get first item of empty list");
+            }
+          }
+        },
+        _ => panic!("car : argument must be list"),
+      }
+    },
+    "cdr" => {
+      expect_args(1, &params, id);
+      match params[0] {
+        Evaluation::List(ref list) => {
+          let mut rc = list.clone();
+          rc.items.remove(0);
+          if rc.items.len() > 0 {
+            Evaluation::List(rc)
+          } else {
+            Evaluation::Nil
+          }
+        },
+        _ => panic!("cdr : argument must be list"),
+      }
+    },
     _ => panic!(format!("attempt to call undefined function: {}", id)),
   }
 }
