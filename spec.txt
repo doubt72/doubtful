@@ -1,0 +1,198 @@
+
+
+== Examples:
+
+foo(a):
+  b: 1;;
+  +(a, b);;
+
+foo(1); # 2
+
+foo(a):
+  b: 1;;
+  <<("bleargh");
+  +(a, b);;
+
+foo(1); # 2 plus some output
+
+# some weirder stuff here:
+
+foo(a)::a;;;
+
+foo(1); # does NOT return 1.  Returns a function that returns 1
+$(foo(1)) # 1
+
+foo():(a): a;;;
+foo # returns identity function
+$(foo, 1) # 1
+
+== Language features:
+
+* everything is a function, the only "variables" are parameters to functions
+* functions are scoped and can be declared anywhere, including inside of other
+  functions (or even inside a list, etc.)
+* as scope is a thing, functions defined inside functions are accessible only
+  in that function, or inside function definitions inside that function
+* everything is immutable, functions and data structures cannot be redefined.
+  Primitive operations on strings and lists (for example) create new strings and
+  lists.  Scope, however, allows definitions to be hidden by new definitions
+  inside nested scopes.  Parameters can also be hidden.
+* primitive types include atoms (nil, true, false), integers (implemented as
+  64-bit integers), floats (implemented as 64-bit floats), strings, lists,
+  and functions
+* type is implied, but some primitive functions require certain types
+* no void functions, all functions must have a return value, but nil is valid
+* lists are untyped and can contain any other types in any other combination
+* anonymous functions are possible
+* a function can contain any combination of statements, but the return value of
+  the last statement is the return value of that function. If the last
+  statement is a function definition, the function returns a function as its
+  value. Other than I/O expressions, having more than one non-definition
+  expression is rather pointless (though not forbidden), though, since those
+  return values are simply ignored
+* functions are not closures; scope is dynamic at runtime based on calling
+  context
+* statements are terminated with a semicolon (;), function definitions are
+  statements so will be trailed by multiple semicolons, including one for both
+  the last statement in the function and the function as a whole
+
+Things that aren't there:
+
+* still working on an interpreter, not a compiler. Thinking about converting it
+  to LLVM code, but may not bother.  It's more a learning experience trying
+  things
+* no hashes (so far, may still implement them), but one issue there is keys;
+  do they get limited to scalar values?  Lists?  What about function
+  primitives?  Implementing something with arbitrary key types isn't so
+  difficult, relatively speaking
+* no optimization of tail recursion, dumb implementation = stack explosion, also
+* "control" being via function = oops, no halting, recursion impossible
+* some sort of runtime exception type
+* everything is literal in strings including newlines, can't escape
+  double-quotes
+* and many, many, many other advanced language features; again, easy-to-parse,
+  easy-to-run toy language here
+
+== reserved characters:
+
+: ; , ( ) " [ ] { } #
+
+== identifiers:
+  anything else not whitespace or literal type (e.g., false, int, list),
+  includes some weird things right now like "0z_f" or whatever
+
+== primitives:
+
+operations:
+  +, -, /, *: (int | float, int | float) -> int | float
+  +: (string, string) -> string | (list, any) -> list
+  %: (int, int) -> int
+  &, |: (true | false, true | false) -> true | false
+  !: true -> false | false -> true
+comparison:
+  >: (int | float, int | float) -> true | false
+  <: (int | float, int | float) -> true | false
+  =: (any, any) -> true | false
+    [any dissimilar types will not be considered equal]
+control:
+  ? (true | false, any, any) -> any
+    [being a function, all arguments will get evaluated before being passed]
+    [needless to say, this is problematic for tail recursion]
+string operations:
+  substr: (string, int, int) -> string
+  strlen: (string) -> int
+list operations:
+  car: (list) -> any
+  cdr: (list) -> list | nil
+hash operations (not implemented, hashes not implemented):
+  len: (hash) -> int
+  keys: (hash) -> list
+  get: (hash, any) -> any
+  set: (hash, key, value) -> hash
+  unset: (hash, key) -> hash
+I/O:
+  >>: (string) -> nil
+  <<: (nil) <- STDIN (...All of it to EOF; might as well keep this simple)
+    [not implemented]
+lambda:
+  $: takes function as first argument, additional arguments passed
+
+== possible primitives:
+
+type conversion:
+  int: (float | string)
+  float: (int | string)
+  string: (any)
+  list: (string)
+  hash: (string)
+  bool (any) : nil | false | 0 | 0.0 | {} | [] | "" | "false" -> false
+             : all else -> true
+floating point math:
+  sqrt, sin, cos, tan, asin, acos, atan, etc.
+
+Can everything else be done by composing the above primitives?
+
+== not primitives:
+
+  >=: (use ! and <)
+  <=: (use ! and >)
+  !=: (use ! and =)
+  ^: (use | and & and !)
+  pow: (use * and tail recursion)
+  sub: (for lists, use car and cdr)
+  len: (list) -> int
+  @: (list, fn(any)) -> list [map] (use car and cdr)
+  . [from,to]: (int, int, fn(int)) -> list []
+  e, pi: (defined)
+
+Obviously, this is misguided purity in practice (i.e., this is slower than it
+would be if these were primitives) but doing this because we can.
+
+== types:
+
+atoms:        nil, true, false
+int (64):     0
+float (64):   0.0
+string:       "0"
+list:         [0, "0", true]
+hash:         {0: 0, 1: 1}
+function:     a raw function definition
+
+...Hashes aren't implemented, though.
+
+== syntax:
+
+<block> ::= [ <expression> ]*
+<expression> ::= <definition> | <call> | <literal> ';'
+<definition> ::= [ <id> ] [ <params> ] ':' <block>
+<params> ::= '(' <id> [ ',' <id> ]* ')'
+<call> ::= <id> [ '(' <expression-list> ')' ]
+<expression-list> ::= [ <expression> [ ',' <expression> ]* ]
+<literal> ::= <scalar> | <list> | <hash>
+<list> ::= '[' <expression-list> ']'
+<hash> ::= '{' <hash-term> [ ',' <hash-term> ]* '}'
+<hash-term> ::= <expression> ':' <expression>
+<scalar> ::= <atom> | <int> | <float> | <string>
+<atom> ::= nil | true | false
+
+Not quite BNF, the tokenizer figures this part out.
+
+<int> is i64
+<float> is f64
+<string> is double-quote delimited string
+<id> is a string that isn't any of the above scalars
+
+TODO:
+
+* Hashes
+* Better error handling for parser
+* Better error handling at runtime
+* Allow recursion (with guards? Actual if/control statements?)
+* Optimize tail recursion
+* Math primitives
+* String escape codes
+* Namespacing
+* Refactor and clean shit up (scoping especially is a mess and unnecessarily
+  complicated)
+
+* Build LLVM compiler?

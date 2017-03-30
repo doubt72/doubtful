@@ -1,0 +1,191 @@
+### Helper functions:
+
+!=(a, b):!(=(a, b));;
+
+^(a, b):?(a,!(b),b);;
+
+>=(a, b):|(>(a,b),=(a,b));;
+<=(a, b):|(<(a,b),=(a,b));;
+
+# recursion currently doesn't terminate, because ? is regular function:
+#pow(a, b):?(=(b,0),1,*(a,pow(a,-(b,1))));;
+
+### Our testing harness:
+
+succeed(msg):
+  +("+ : ", msg);;
+
+# Look at these literal newlines:
+fail(a, b, msg):
+  l1:+("- : ", msg);;
+  l2:+("
+  : expected : ", string(a));;
+  l3:+("
+  : got      : ", string(b));;
+  +(l1,+(l2,l3));;
+
+assert(a, b, msg):
+  out:?(=(a, b), succeed(msg), fail(a, b, msg));;
+  >>(out);
+  =(a, b);;
+
+assert!(a, b, msg):
+  out:?(!=(a, b), succeed(msg), fail(a, b, msg));;
+  >>(out);
+  =(a, b);;
+
+assert(1, 1, "one equals one");
+assert!(1, 0, "one does not equal zero");
+
+### Functions:
+
+test_00(a):a;;
+test_01(a):test_00(a);;
+assert(test_01(1), 1, "chained functions work");
+
+test_02(a):test_03(a):a;;test_03(a);;
+assert(test_02(1), 1, "inner functions work");
+
+### Anonymous functions:
+
+test_04(a)::a;;;
+#assert($(foo(1)), 1, "call of function that returns function works");
+
+test_05:(a):a;;;
+#assert($(foo, 1), 1, "call of anonymous function with parameter works");
+
+### Types:
+
+assert(int(1.0), 1, "float to int conversion");
+assert(int("1"), 1, "string to int conversion");
+
+assert(float(1), 1.0, "int to float conversion");
+assert(float("1.1"), 1.1, "string to float conversion");
+
+assert(string(1), "1", "int to string conversion");
+assert(string(1.1), "1.1", "float to string conversion");
+assert(string(false), "false", "atom to string conversion");
+assert(string([1, nil, 1.1]), "[1, nil, 1.1]", "list to string conversion");
+
+# Yeah, this is kind of crazy, but it works:
+assert(string((a, b):+(a, b);), "(a, b):<...>", "function to string conversion");
+
+### Math:
+
+assert(+(1, 1), 2, "adding int to int");
+assert(+(1, 1.1), 2.1, "adding int to float");
+assert(+(1.1, 1), 2.1, "adding float to int");
+assert(+(1.1, 1.1), 2.2, "adding float to float");
+
+assert(-(2, 1), 1, "subtracting int from int");
+assert(-(2, 0.9), 1.1, "subtracting int from float");
+assert(-(2.1, 1), 1.1, "subtracting float from int");
+assert(-(2.2, 1.1), 1.1, "subtracting float from float");
+
+assert(*(1, 1), 1, "multiplying int with int");
+assert(*(1, 1.1), 1.1, "multiplying int with float");
+assert(*(1.1, 1), 1.1, "multiplying float with int");
+assert(*(0.5, 2.0), 1.0, "multiplying float with float");
+
+assert(/(4, 2), 2, "dividing int by int");
+assert(/(1, 2), 0, "dividing int by int (rounded)");
+assert(/(1, 2.0), 0.5, "dividing int by float");
+assert(/(1.0, 2), 0.5, "dividing float by int");
+assert(/(1.0, 2.0), 0.5, "dividing float by float");
+
+assert(%(3, 2), 1, "modulus works");
+assert(%(4, 2), 0, "modulus works");
+
+#assert(pow(3, 3), 27, "raising to a power");
+
+### Boolean operations:
+
+assert(&(true, true), true, "true and true are true");
+assert(&(false, true), false, "false and true are false");
+assert(&(true, false), false, "true and false are false");
+assert(&(false, false), false, "false and false are false");
+
+assert(|(true, true), true, "true or true is true");
+assert(|(false, true), true, "false or true is true");
+assert(|(true, false), true, "true or false is true");
+assert(|(false, false), false, "false or false is false");
+
+assert(!(true), false, "not true is false");
+assert(!(false), true, "not false is true");
+
+assert(^(true, true), false, "true xor true is false");
+assert(^(false, true), true, "false xor true is true");
+assert(^(true, false), true, "true xor false is true");
+assert(^(false, false), false, "false xor false is false");
+
+### Appending things:
+
+assert(+("hello ", "world"), "hello world", "appending to a string");
+assert(+([0, 1], 2), [0, 1, 2], "appending to a list");
+assert(+([1, true], [nil, 2.0]), [1, true, [nil, 2.0]], "appending a list to a list");
+
+### Control and comparisons:
+
+assert(?(true, 1, 0), 1, "question is true");
+assert(?(false, 1, 0), 0, "question is false");
+
+assert(=(1, 1), true, "comparison of int to int");
+assert(=(1, 2), false, "comparison of int to int");
+
+assert(=(0, 0.0), false, "comparison of int to float is false");
+assert(=(nil, false), false, "comparison of nil to false is false");
+
+assert(=(nil, nil), true, "comparison of nil to nil is true");
+assert(=(true, true), true, "comparison of true to true is true");
+assert(=(true, false), false, "comparison of true to false is false");
+assert(=(false, true), false, "comparison of false to true is false");
+assert(=(false, false), true, "comparison of false to false is true");
+
+assert(=(1.0, 1.0), true, "comparison of float to float");
+assert(=(1.0, 2.0), false, "comparison of float to float");
+
+assert(=("one", "one"), true, "comparison of string to string");
+assert(=("one", "two"), false, "comparison of string to string");
+
+assert(=([1, 2], [1, 2]), true, "comparison of list to list");
+assert(=([1, 2, 3], [1, 2]), false, "comparison of list to list");
+assert(=([1, 2], [1, 2, 3]), false, "comparison of list to list");
+
+assert(>(1, 1), false, "comparison of int to int");
+assert(>=(1, 1), true, "comparison of int to int");
+assert(<(1, 1), false, "comparison of int to int");
+assert(<=(1, 1), true, "comparison of int to int");
+
+assert(>(2, 1), true, "comparison of int to int");
+assert(>=(2, 1), true, "comparison of int to int");
+assert(<(2, 1), false, "comparison of int to int");
+assert(<=(2, 1), false, "comparison of int to int");
+
+assert(>(1, 2), false, "comparison of int to int");
+assert(>=(1, 2), false, "comparison of int to int");
+assert(<(1, 2), true, "comparison of int to int");
+assert(<=(1, 2), true, "comparison of int to int");
+
+assert(>(1.0, 1.0), false, "comparison of float to float");
+assert(>=(1.0, 1.0), true, "comparison of float to float");
+assert(<(1.0, 1.0), false, "comparison of float to float");
+assert(<=(1.0, 1.0), true, "comparison of float to float");
+
+### String operations:
+
+assert(substr("hello", 1, 3), "ell", "substring works");
+assert(strlen("hello"), 5, "strlen works");
+
+### List operations:
+
+assert(car([1, 2, 3]), 1, "car works");
+assert(cdr([1, 2, 3]), [2, 3], "cdr works");
+assert(cdr([1]), nil, "cdr works on single entry list");
+
+assert(len([1, 2, 3]), 3, "len works on list");
+assert(sub([1, 2, 3, 4], 1, 2), [2, 3], "sub works");
+
+test_06:(a):+(a, 1);;;
+assert(@([1, 2, 3], test_06), [2, 3, 4], "map [@] works");
+
+assert(.(1,4), [1, 2, 3, 4], "range [.] works");
