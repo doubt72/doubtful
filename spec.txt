@@ -40,18 +40,19 @@ $(foo, 1) # 1
   and functions
 * type is implied, but some primitive functions require certain types
 * no void functions, all functions must have a return value, but nil is valid
-* lists are untyped and can contain any other types in any other combination
+* lists are untyped and can contain any other types in any combination
 * anonymous functions are possible
 * a function can contain any combination of statements, but the return value of
   the last statement is the return value of that function. If the last
   statement is a function definition, the function returns a function as its
   value.
-* Exception: if the statement in the body returns an exception, the block is
+* Exceptions: if the statement in the body returns an exception, the block is
   terminated.  One type of exception is special: the "return" exception which
   terminates the block but causes the block to return the value in the exception
   payload, unlike other exceptions that type is not propagated
 * functions are not closures; scope is dynamic at runtime based on calling
-  context
+  context. Including parameters of calling functions assuming they're not
+  hidden?  Not sure.  Uh, might fix that.
 * statements are expressions terminated with a semicolon (;), function
   definitions are statements so will be trailed by multiple semicolons,
   including one for both the last statement in the function and the function as
@@ -132,12 +133,8 @@ exceptions
      where value is the argument when not passed an exception]
   ~ (any) -> exception
     [returns an exception with the given argument that terminates the
-     current block, i.e., it's a return/exit; this is a special case of raise]
-    [this must be a primitive, however, because there's no way to encapsulate
-     this exception in a way that is not intercepted by the enclosing block]
-    [well, sure, there could be, i.e., encapsulating a return exception as the
-     value of a return exception if anything besides catch could intercept an
-     exception, e.g., raise, but it makes things more complicated]
+     current block, i.e., it's a return/exit; this is a special kind of raise,
+     with a "return" instead of "error" exception type]
 
 == possible primitives:
 
@@ -184,8 +181,6 @@ exception:    can only be intercepted by catch, terminates a block (including
 Not implemented:
   hash:         {0: 0, 1: 1}
 
-...Hashes aren't implemented, though.
-
 == syntax:
 
 <block> ::= [ <expression> ]*
@@ -215,7 +210,6 @@ TODO:
 * Optimize tail recursion
 * Math primitives
 * String escape codes
-* Namespacing
 * Refactor and clean shit up (scoping especially is a mess and unnecessarily
   complicated, and evaluation functions are too big and complicated, and
   maybe primitives could be abstracted to something better)
