@@ -126,12 +126,26 @@ pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
               }
             },
             Evaluation::List(ref list) => {
-              let mut rc = ListEval { items: Vec::new() };
-              for i in &list.items {
-                rc.items.push(i.clone());
+              match params[1] {
+                Evaluation::List(ref list2) => {
+                  let mut rc = ListEval { items: Vec::new() };
+                  for i in &list.items {
+                    rc.items.push(i.clone());
+                  }
+                  for i in &list2.items {
+                    rc.items.push(i.clone());
+                  }
+                  Evaluation::List(rc)
+                },
+                _ => {
+                  let mut rc = ListEval { items: Vec::new() };
+                  for i in &list.items {
+                    rc.items.push(i.clone());
+                  }
+                  rc.items.push(params[1].clone());
+                  Evaluation::List(rc)
+                },
               }
-              rc.items.push(params[1].clone());
-              Evaluation::List(rc)
             },
             _ => evaluator::exception(ExceptionType::TypeError, &id,
                                       "numbers, strings, or list arguments expected".to_string()),

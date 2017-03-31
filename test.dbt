@@ -17,23 +17,27 @@ pow(a, b):?(=(b,0),~(1),nil);*(a,pow(a,-(b,1)));;
 
 len(list):?(=(list,nil),~(0),nil);+(1,len(cdr(list)));;
 
-# Naive implementation that explodes on empty lists
-truncate(list):
-  ?(=(1,len(list)),~([]),nil);
-  ?(=(2,len(list)),~([car(list)]),nil);
-  +([car(list)],car(truncate(cdr(list))));;
+# Naive implementation that explodes on list shorter than n (for example)
+truncate(list,n):
+  ?(=(n,len(list)),~([]),nil);
+  +([car(list)],truncate(cdr(list),n));;
 
-# Naive implementation that doesn't worry about arguments out of range
+# Also naive
+cd...dr(list,n):
+  ?(=(n,0),~(list),nil);
+  cd...dr(cdr(list),-(n,1));;
+
+# Also naive, no range checking
 sub(list,start,range):
-  ?(&(=(start,0),=(range,len(list))),~(list),nil);
-  ?(>(start,0),
-    sub(cdr(list),-(start,1),range),
-    sub(truncate(list),start,-(range,1)));;
+  truncate(cd...dr(list,start),-(-(len(list),start),range));;
 
 @(list,func):
-  >>(string(list));
-  ?(=(cdr(list),nil),~([car(list)]),nil);
-  +([car(list)],car(@(cdr(list),func)));;
+  ?(=(cdr(list),nil),~([$(func,car(list))]),nil);
+  +([$(func,car(list))],@(cdr(list),func));;
+
+.(n,m):
+  ?(=(n,m),~([m]),nil);
+  +([n],.(+(n,1),m));;
 
 ### Our testing harness:
 
@@ -205,7 +209,7 @@ assert(^(false, false), false, "false xor false is false");
 
 assert(+("hello ", "world"), "hello world", "appending to a string");
 assert(+([0, 1], 2), [0, 1, 2], "appending to a list");
-assert(+([1, true], [nil, 2.0]), [1, true, [nil, 2.0]],
+assert(+([1, true], [nil, 2.0]), [1, true, nil, 2.0],
   "appending a list to a list");
 
 # TODO: type errors
@@ -281,7 +285,8 @@ assert(cdr([1]), nil, "cdr works on single entry list");
 ### Composed list operations:
 
 assert(len([1, 2, 3]), 3, "len works on list");
-assert(truncate([1, 2, 3, 4]), [1, 2, 3], "truncate works on list");
+assert(truncate([1, 2, 3, 4],1), [1, 2, 3], "truncate works on list");
+assert(truncate([1, 2, 3, 4],2), [1, 2], "truncate works on list");
 assert(sub([1, 2, 3, 4], 1, 2), [2, 3], "sub works");
 
 test_09:(a):+(a, 1);;;
