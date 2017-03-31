@@ -11,6 +11,8 @@ use encoding::Scope;
 use encoding::FunctionOrValue;
 use encoding::Evaluation;
 use encoding::Function;
+use encoding::Exception;
+use encoding::ExceptionType;
 
 impl Debug for Token {
   fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -126,6 +128,17 @@ impl Debug for Evaluation {
         s2 += "]";
         s2
       },
+      &Evaluation::Exception(ref x) => {
+        let mut s2 = format!("EXCEPTION:[{}, ", x.flavor);
+        s2 += &format!("{}, ", x.payload);
+        let mut stack = Vec::new();
+        for i in &x.stack {
+          stack.push(i.clone());
+        }
+        s2 += &stack.join(", ");
+        s2 += "]]";
+        s2
+      },
       &Evaluation::Function(ref x) => {
         let mut s2 = "FUNCTION:".to_string();
         if x.params.len() > 0 {
@@ -171,7 +184,7 @@ impl Display for Evaluation {
       &Evaluation::False => "false".to_string(),
       &Evaluation::Integer(x) => x.to_string(),
       &Evaluation::Float(x) => x.to_string(),
-      &Evaluation::String(ref x) => x.clone(),
+      &Evaluation::String(ref x) => format!("\"{}\"", x),
       &Evaluation::List(ref x) => {
         let mut s2 = "[".to_string();
         let mut items = Vec::new();
@@ -180,6 +193,17 @@ impl Display for Evaluation {
         }
         s2 += &items.join(", ");
         s2 += "]";
+        s2
+      },
+      &Evaluation::Exception(ref x) => {
+        let mut s2 = format!("[{}, ", x.flavor);
+        s2 += &format!("{}, ", x.payload);
+        let mut stack = Vec::new();
+        for i in &x.stack {
+          stack.push(i.clone());
+        }
+        s2 += &stack.join(", ");
+        s2 += "]]";
         s2
       },
       &Evaluation::Function(ref x) => {
@@ -196,6 +220,37 @@ impl Display for Evaluation {
         s2 += ":<...>";
         s2
       },
+    };
+    write!(f, "{}", s)
+  }
+}
+
+impl Display for Exception {
+  fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    let mut s = format!("\nRUNTIME EXCEPTION: {}\n{}:\n\n  calling context:\n",
+                        self.flavor.to_string().to_uppercase(), self.payload);
+    let mut n = self.stack.len();
+    for i in &self.stack {
+      s += &format!("   -- called from function {}: {}\n", n - 1, i);
+      n -= 1;
+    }
+    write!(f, "{}", s)
+  }
+}
+
+impl Display for ExceptionType {
+  fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    let s = match self {
+      &ExceptionType::Return => "return".to_string(),
+      &ExceptionType::Error => "error".to_string(),
+      &ExceptionType::ArityError => "arity error".to_string(),
+      &ExceptionType::ParseError => "parse error".to_string(),
+      &ExceptionType::TypeError => "type error".to_string(),
+      &ExceptionType::TypeMismatch => "type mismatch".to_string(),
+      &ExceptionType::DivByZero => "division by zero".to_string(),
+      &ExceptionType::RuntimeError => "runtime error".to_string(),
+      &ExceptionType::UndefError => "undefined function".to_string(),
+      &ExceptionType::RedefError => "redefinition error".to_string(),
     };
     write!(f, "{}", s)
   }

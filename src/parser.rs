@@ -10,7 +10,8 @@ use encoding::Definition;
 
 fn get_token(tokens: &Vec<Token>, start: usize) -> &Token {
   if start > tokens.len() - 1 {
-    // TODO: replace all panics with better handling
+    // TODO: replace all the panics in the parser with better handling,
+    // line number, blah blah
     panic!("unexpected end of file; statement unterminated")
   }
   &tokens[start]
@@ -112,7 +113,7 @@ fn parse_definition(tokens: &Vec<Token>, start: usize) ->
 fn parse_call(tokens: &Vec<Token>, start: usize) -> (Call, usize) {
   let id = match get_token(tokens, start) {
     &Token::ID(ref s) => s.clone(),
-    _ => panic!("this should never happen"),
+    _ => panic!("if you see this, there's a bug in the parser"),
   };
   let mut rc = Call { id: id, params: Vec::new() };
   let mut index = start + 1;
@@ -129,8 +130,7 @@ fn parse_call(tokens: &Vec<Token>, start: usize) -> (Call, usize) {
             let (param, change) = parse_next_expression(tokens, index);
             match param {
               Some(exp) => rc.params.push(exp),
-              // TODO: better
-              None => panic!("error parsing call")
+              None => panic!("expression or close paren expected")
             }
             index = change;
             match get_token(tokens, index) {
@@ -165,7 +165,7 @@ fn parse_list(tokens: &Vec<Token>, start: usize) -> (List, usize) {
         let (item, change) = parse_next_expression(tokens, index);
         match item {
           Some(exp) => rc.items.push(exp),
-          None => panic!("error parsing list"),
+          None => panic!("expression or close bracket expected"),
         }
         index = change;
         match get_token(tokens, index) {
@@ -215,7 +215,6 @@ fn parse_next_expression(tokens: &Vec<Token>, start: usize) ->
           (Some(Expression::Definition(def)), index - 1)
         },
         None => {
-          // TODO: better
           panic!("expected function definition, didn't get one");
         },
       }
@@ -232,7 +231,7 @@ fn parse_block(tokens: &Vec<Token>, start: usize) -> (Block, usize) {
     match next {
       Some(value) => {
         index = change;
-        // Debug output:
+        // For debugging:
         //println!("{:?}", value);
         rc.expressions.push(value);
       },
@@ -258,7 +257,6 @@ fn parse_block(tokens: &Vec<Token>, start: usize) -> (Block, usize) {
 pub fn parse(tokens: &Vec<Token>) -> Block {
   let (block, index) = parse_block(&tokens, 0);
   if index < tokens.len() {
-    // TODO: better error handling here
     panic!("syntax error, unexpected token")
   }
   block

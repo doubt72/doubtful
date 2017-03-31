@@ -13,7 +13,7 @@ fn main() {
 
   // TODO: better command line
   if args.len() != 2 {
-    panic!("incorrect number of arguments: expect source file as argument");
+    panic!("incorrect number of arguments: expecting source file as argument");
   }
   let filename = &args[1];
 
@@ -27,12 +27,12 @@ fn main() {
           evaluator::evaluate(&block);
         },
         _ => {
-          panic!("failed to read file");
+          panic!("failed to read source file");
         }
       }
     },
     _ => {
-      panic!("failed to open file");
+      panic!("failed to open source file");
     },
   }
 }

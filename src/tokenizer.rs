@@ -87,7 +87,7 @@ pub fn tokenize(s: &str) -> Vec<Token> {
   while index < chars.len() {
     let (token, change) = next_token(&chars, index);
     index = change;
-    // Debug output:
+    // For debugging:
     //println!("{}:{:?}", index, token);
     tokens.push(token);
   }

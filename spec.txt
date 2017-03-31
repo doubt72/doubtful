@@ -1,5 +1,3 @@
-
-
 == Examples:
 
 foo(a):
@@ -47,14 +45,21 @@ $(foo, 1) # 1
 * a function can contain any combination of statements, but the return value of
   the last statement is the return value of that function. If the last
   statement is a function definition, the function returns a function as its
-  value. Other than I/O expressions, having more than one non-definition
-  expression is rather pointless (though not forbidden), though, since those
-  return values are simply ignored
+  value.
+* Exception: if the statement in the body returns an exception, the block is
+  terminated.  One type of exception is special: the "return" exception which
+  terminates the block but causes the block to return the value in the exception
+  payload, unlike other exceptions that type is not propagated
 * functions are not closures; scope is dynamic at runtime based on calling
   context
-* statements are terminated with a semicolon (;), function definitions are
-  statements so will be trailed by multiple semicolons, including one for both
-  the last statement in the function and the function as a whole
+* statements are expressions terminated with a semicolon (;), function
+  definitions are statements so will be trailed by multiple semicolons,
+  including one for both the last statement in the function and the function as
+  a whole.
+* if any expression is inside of a function call (or list), it does not need
+  a terminating semicolon.  That may seem obvious, except in the case of
+  definitions: those also do not need the trailing semicolon in that context
+  (for instance, when defining anonymous functions).
 
 Things that aren't there:
 
@@ -65,9 +70,7 @@ Things that aren't there:
   do they get limited to scalar values?  Lists?  What about function
   primitives?  Implementing something with arbitrary key types isn't so
   difficult, relatively speaking
-* no optimization of tail recursion, dumb implementation = stack explosion, also
-* "control" being via function = oops, no halting, recursion impossible
-* some sort of runtime exception type
+* no optimization of tail recursion, dumb implementation = stack explosion
 * everything is literal in strings including newlines, can't escape
   double-quotes
 * and many, many, many other advanced language features; again, easy-to-parse,
@@ -81,7 +84,7 @@ Things that aren't there:
   anything else not whitespace or literal type (e.g., false, int, list),
   includes some weird things right now like "0z_f" or whatever
 
-== primitives:
+== primitive functions:
 
 operations:
   +, -, /, *: (int | float, int | float) -> int | float
@@ -94,10 +97,6 @@ comparison:
   <: (int | float, int | float) -> true | false
   =: (any, any) -> true | false
     [any dissimilar types will not be considered equal]
-control:
-  ? (true | false, any, any) -> any
-    [being a function, all arguments will get evaluated before being passed]
-    [needless to say, this is problematic for tail recursion]
 string operations:
   substr: (string, int, int) -> string
   strlen: (string) -> int
@@ -116,6 +115,29 @@ I/O:
     [not implemented]
 lambda:
   $: takes function as first argument, additional arguments passed
+control:
+  ? (true | false, any, any) -> any
+    [being a function, all arguments will get evaluated before being passed, so
+     can't be used for recursion directly]
+    [? DOES have special behavior with exceptions, however; an exception in the
+     first argument will pass through it, but exceptions in the second and third
+     arguments will return only when the first argument is true or false,
+     respectively]
+exceptions
+  raise (any) -> exception
+    [raises an "error" exception]
+  catch (exception | any) -> [string, any, list] | ["ok", any]
+    [catches an exception and turns into a list with the exception type string,
+     the payload, and a list of strings (the backtrace); returns: ["ok", value]
+     where value is the argument when not passed an exception]
+  ~ (any) -> exception
+    [returns an exception with the given argument that terminates the
+     current block, i.e., it's a return/exit; this is a special case of raise]
+    [this must be a primitive, however, because there's no way to encapsulate
+     this exception in a way that is not intercepted by the enclosing block]
+    [well, sure, there could be, i.e., encapsulating a return exception as the
+     value of a return exception if anything besides catch could intercept an
+     exception, e.g., raise, but it makes things more complicated]
 
 == possible primitives:
 
@@ -155,8 +177,12 @@ int (64):     0
 float (64):   0.0
 string:       "0"
 list:         [0, "0", true]
-hash:         {0: 0, 1: 1}
 function:     a raw function definition
+exception:    can only be intercepted by catch, terminates a block (including
+              the main block -- i.e., the program -- if not caught)
+
+Not implemented:
+  hash:         {0: 0, 1: 1}
 
 ...Hashes aren't implemented, though.
 
@@ -185,14 +211,13 @@ Not quite BNF, the tokenizer figures this part out.
 TODO:
 
 * Hashes
-* Better error handling for parser
-* Better error handling at runtime
-* Allow recursion (with guards? Actual if/control statements?)
+* Better error handling for parser, keep track of line numbers for errors
 * Optimize tail recursion
 * Math primitives
 * String escape codes
 * Namespacing
 * Refactor and clean shit up (scoping especially is a mess and unnecessarily
-  complicated)
+  complicated, and evaluation functions are too big and complicated, and
+  maybe primitives could be abstracted to something better)
 
 * Build LLVM compiler?

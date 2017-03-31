@@ -7,8 +7,13 @@
 >=(a, b):|(>(a,b),=(a,b));;
 <=(a, b):|(<(a,b),=(a,b));;
 
-# recursion currently doesn't terminate, because ? is regular function:
-#pow(a, b):?(=(b,0),1,*(a,pow(a,-(b,1))));;
+# This sort of recursion doesn't terminate, because ? is regular function, so
+# pow always gets evaluated before being passed and results in infinite
+# unterminated recursion (i.e., don't do this):
+# pow(a, b):?(=(b,0),1,*(a,pow(a,-(b,1))));;
+
+# Do this instead (use ~ in a previous statement):
+pow(a, b):?(=(b,0),~(1),nil);*(a,pow(a,-(b,1)));;
 
 ### Our testing harness:
 
@@ -32,7 +37,10 @@ assert(a, b, msg):
 assert!(a, b, msg):
   out:?(!=(a, b), succeed(msg), fail(a, b, msg));;
   >>(out);
-  =(a, b);;
+  !=(a, b);;
+
+assert_error(a, b, msg):
+  assert(car(catch(a)), b, msg);;
 
 assert(1, 1, "one equals one");
 assert!(1, 0, "one does not equal zero");
@@ -48,11 +56,16 @@ assert(test_02(1), 1, "inner functions work");
 
 ### Anonymous functions:
 
+# TODO: figure out why this doesn't work (scoping error?)
 test_04(a)::a;;;
 #assert($(test_04(1)), 1, "call of function that returns function works");
 
 test_05:(a):a;;;
-#assert($(test_05, 1), 1, "call of anonymous function with parameter works");
+assert($(test_05, 1), 1, "call of anonymous function with parameter works");
+
+assert_error($(), "arity error", "arity error for $");
+assert_error($(test_05), "arity error", "arity error for function in $");
+assert_error($(nil), "type error", "type error for $");
 
 ### Types:
 
@@ -68,7 +81,53 @@ assert(string(false), "false", "atom to string conversion");
 assert(string([1, nil, 1.1]), "[1, nil, 1.1]", "list to string conversion");
 
 # Yeah, this is kind of crazy, but it works:
-assert(string((a, b):+(a, b);), "(a, b):<...>", "function to string conversion");
+assert(string((a, b):+(a, b);), "(a, b):<...>",
+  "function to string conversion");
+
+assert_error(int("1", "2"), "arity error", "arity error for int");
+assert_error(int("z"), "parse error", "unparseable string for int");
+assert_error(int(nil), "type error", "type error for int");
+
+assert_error(float("1", "2"), "arity error", "arity error for float");
+assert_error(float("z"), "parse error", "unparseable string for float");
+assert_error(float(nil), "type error", "type error for float");
+
+assert_error(string("1", "2"), "arity error", "arity error for string");
+
+### Exceptions:
+
+test_06:~(1);2;;
+assert(test_06, 1, "~ terminates function returning value");
+
+assert(catch(raise("error")), ["error", "error", []],
+  "can catch raised exception");
+assert(catch(~(nil)), ["return", nil, []], "can catch return exception");
+assert(catch(nil), ["ok", nil], "can catch non-exception");
+
+test_07:raise("error");;
+assert(catch(test_07), ["error", "error", ["test_07"]],
+  "catch gets call stack");
+
+test_08:test_07;;
+assert(catch(test_07), ["error", "error", ["test_08", "test_07"]],
+  "catch gets nested call stack");
+
+assert(catch(+(-(raise("error"), 1), 1)), ["error", "error", ["-", "+"]],
+  "exception passes through functions");
+assert(catch(string(raise("error"))), ["error", "error", ["string"]],
+  "exception passes through string, can't simply change type");
+assert(catch(?(raise("error"), true, false)), ["error", "error", ["?"]],
+  "exception passes through ?");
+assert(catch(?(true, raise("error"), false)), ["error", "error", []],
+  "exception doesn't pass through ? when returned");
+assert(catch(?(false, raise("error"), false)), false,
+  "exception doesn't pass through ? when not returned");
+assert(catch(?(true, true, raise("error"))), true,
+  "exception doesn't pass through ? when not returned");
+
+# TODO: undefined function
+# TODO: redefined function
+# TODO: arity mismatch of defined function
 
 ### Math:
 
@@ -96,7 +155,9 @@ assert(/(1.0, 2.0), 0.5, "dividing float by float");
 assert(%(3, 2), 1, "modulus works");
 assert(%(4, 2), 0, "modulus works");
 
-#assert(pow(3, 3), 27, "raising to a power");
+assert(pow(3, 3), 27, "raising to a power");
+
+# TODO: type errors + division by zero
 
 ### Boolean operations:
 
@@ -118,11 +179,16 @@ assert(^(false, true), true, "false xor true is true");
 assert(^(true, false), true, "true xor false is true");
 assert(^(false, false), false, "false xor false is false");
 
+# TODO: type errors
+
 ### Appending things:
 
 assert(+("hello ", "world"), "hello world", "appending to a string");
 assert(+([0, 1], 2), [0, 1, 2], "appending to a list");
-assert(+([1, true], [nil, 2.0]), [1, true, [nil, 2.0]], "appending a list to a list");
+assert(+([1, true], [nil, 2.0]), [1, true, [nil, 2.0]],
+  "appending a list to a list");
+
+# TODO: type errors
 
 ### Control and comparisons:
 
@@ -151,6 +217,8 @@ assert(=([1, 2], [1, 2]), true, "comparison of list to list");
 assert(=([1, 2, 3], [1, 2]), false, "comparison of list to list");
 assert(=([1, 2], [1, 2, 3]), false, "comparison of list to list");
 
+# TODO: dissimilar types
+
 assert(>(1, 1), false, "comparison of int to int");
 assert(>=(1, 1), true, "comparison of int to int");
 assert(<(1, 1), false, "comparison of int to int");
@@ -171,6 +239,8 @@ assert(>=(1.0, 1.0), true, "comparison of float to float");
 assert(<(1.0, 1.0), false, "comparison of float to float");
 assert(<=(1.0, 1.0), true, "comparison of float to float");
 
+# TODO: type errors
+
 ### String operations:
 
 assert(substr("hello", 1, 3), "ell", "substring works");
@@ -178,16 +248,22 @@ assert(substr("こんにちは", 1, 3), "んにち", "substring works with UTF-8
 assert(strlen("hello"), 5, "strlen works");
 assert(strlen("こんにちは"), 5, "strlen works with UTF-8");
 
-### List operations:
+# TODO: range errors
+
+### List primitive operations:
 
 assert(car([1, 2, 3]), 1, "car works");
 assert(cdr([1, 2, 3]), [2, 3], "cdr works");
 assert(cdr([1]), nil, "cdr works on single entry list");
 
-#assert(len([1, 2, 3]), 3, "len works on list");
-#assert(sub([1, 2, 3, 4], 1, 2), [2, 3], "sub works");
+# TODO: type errors
 
-test_06:(a):+(a, 1);;;
-#assert(@([1, 2, 3], test_06), [2, 3, 4], "map [@] works");
+### Composed list operations:
 
-#assert(.(1,4), [1, 2, 3, 4], "range [.] works");
+assert(len([1, 2, 3]), 3, "len works on list");
+assert(sub([1, 2, 3, 4], 1, 2), [2, 3], "sub works");
+
+test_09:(a):+(a, 1);;;
+assert(@([1, 2, 3], test_09), [2, 3, 4], "map [@] works");
+
+assert(.(1,4), [1, 2, 3, 4], "range [.] works");

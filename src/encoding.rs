@@ -16,18 +16,12 @@ pub struct Block {
 pub enum Expression {
   Nil, True, False, Integer(i64), Float(f64), String(String), List(List),
   Call(Call), Definition(Definition)
-  // Hash(Hash)
+  //, Hash(Hash)
 }
 
 pub struct List {
   pub items: Vec<Expression>
 }
-
-// TODO: figure out hashes later, probably want to limit keys to atomic data
-// types
-// pub struct Hash {
-//   pub map: HashMap<Expression, Expression>
-// }
 
 pub struct Call {
   pub id: String,
@@ -50,8 +44,8 @@ pub enum FunctionOrValue {
 
 pub enum Evaluation {
   Nil, True, False, Integer(i64), Float(f64), String(String), List(ListEval),
-  Function(Function)
-  // Hash(Hash)
+  Function(Function), Exception(Exception)
+  //, Hash(Hash)
 }
 
 pub struct ListEval {
@@ -61,4 +55,15 @@ pub struct ListEval {
 pub struct Function {
   pub params: Vec<String>,
   pub block: Block
+}
+
+pub struct Exception {
+  pub flavor: ExceptionType,
+  pub payload: Box<Evaluation>,
+  pub stack: Vec<String>
+}
+
+pub enum ExceptionType {
+  Return, Error, ArityError, ParseError, TypeError, TypeMismatch, DivByZero,
+  RuntimeError, UndefError, RedefError
 }
