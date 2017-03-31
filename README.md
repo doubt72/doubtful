@@ -19,3 +19,10 @@ mastered Rust.  Seems fast, but it's got some awkward bits.
 
 Go look at the random [notes I wrote](spec.txt) (sort of a spec, sort of
 up-to-date).
+
+Also, there is [sample source](test.dbt) with a whole bunch of tests, depending
+on the state of the rest of the code, sometimes it works.
+
+Install Rust and run this to see:
+
+```cargo run test.dbt```
