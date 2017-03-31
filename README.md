@@ -2,6 +2,10 @@
 
 A toy language interpreter.  The third-most pointless thing I've ever done.
 
+No one will ever use this language.  No one *should* ever use this language.
+
+Also, it's kinda got some weird bugs I haven't figured out.
+
 ## Why This?
 
 I was reading papers on compiler design, and uh, this happened.  Although it's

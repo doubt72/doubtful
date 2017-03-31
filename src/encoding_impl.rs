@@ -70,15 +70,8 @@ impl Call {
             let mut block = Block { expressions: Vec::new() };
             block.expressions.push(self.params[y].clone());
             let eval = block.evaluate(scope, &self.id);
-            match eval {
-              Evaluation::Exception(_) => {
-                return eval;
-              },
-              _ => {
-                p_scope.bindings.insert(func.params[y].clone(),
-                                        FunctionOrValue::Value(eval));
-              },
-            }
+            p_scope.bindings.insert(func.params[y].clone(),
+                                    FunctionOrValue::Value(eval));
           }
           scope.push(p_scope);
           rc = func.block.evaluate(scope, &self.id);
@@ -96,6 +89,7 @@ impl Call {
       } else {
         let eval = self.params[0].evaluate(scope);
         match eval {
+          Evaluation::Exception(_) => { return eval.clone(); },
           Evaluation::Function(ref func) => {
             // TODO: make helper function
             // This is (almost) repeated for user functions (minus first param)
@@ -110,15 +104,8 @@ impl Call {
               let mut block = Block { expressions: Vec::new() };
               block.expressions.push(self.params[y].clone());
               let eval = block.evaluate(scope, &self.id);
-              match eval {
-                Evaluation::Exception(_) => {
-                  return eval;
-                },
-                _ => {
-                  p_scope.bindings.insert(func.params[y-1].clone(),
-                                          FunctionOrValue::Value(eval));
-                },
-              }
+              p_scope.bindings.insert(func.params[y-1].clone(),
+                                      FunctionOrValue::Value(eval));
             }
             scope.push(p_scope);
             rc = func.block.evaluate(scope, &self.id);
@@ -135,20 +122,7 @@ impl Call {
       let mut params = Vec::new();
       for p in &self.params {
         let eval = p.evaluate(scope);
-        // TODO: make helper function
-        // This is repeated for user functions and $
-        match eval {
-          Evaluation::Exception(_) => {
-            if self.id == "catch" {
-              params.push(eval);
-            } else {
-              return eval;
-            }
-          },
-          _ => {
-            params.push(eval);
-          }
-        }
+        params.push(eval);
       }
       rc = primitives::system_functions(self.id.clone(), params);
     }

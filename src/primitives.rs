@@ -20,6 +20,16 @@ fn expect_args(count: usize, params: &Vec<Evaluation>, id: &String) ->
 
 // TODO: break this up into functions?  Could abstract this substantially, too
 pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
+  if id != "?" && id != "catch" {
+    for p in &params {
+      match p {
+        &Evaluation::Exception(_) => { return p.clone(); },
+        _ => {
+          // Not an exception, move along
+        },
+      }
+    }
+  }
   match &*id {
     // Type Conversion
     "int" => {
@@ -304,6 +314,7 @@ pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
         Some(e) => e,
         None => {
           match params[0] {
+            Evaluation::Exception(_) => params[0].clone(),
             Evaluation::True => params[1].clone(),
             Evaluation::False => params[2].clone(),
             _ => evaluator::exception(ExceptionType::TypeError, &id,
@@ -609,7 +620,12 @@ pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
               list.items.push(Evaluation::List(stack));
               Evaluation::List(list)
             },
-            ref eval => eval.clone(),
+            ref eval => {
+              let mut list = ListEval { items: Vec::new() };
+              list.items.push(Evaluation::String("ok".to_string()));
+              list.items.push(eval.clone());
+              Evaluation::List(list)
+            },
           }
         },
       }
@@ -619,6 +635,16 @@ pub fn system_functions(id: String, params: Vec<Evaluation>) -> Evaluation {
         Some(e) => e,
         None => {
           Evaluation::Exception(Exception { flavor: ExceptionType::Error,
+                                            payload: Box::new(params[0].clone()),
+                                            stack: Vec::new() })
+        },
+      }
+    },
+    "~" => {
+      match expect_args(1, &params, &id) {
+        Some(e) => e,
+        None => {
+          Evaluation::Exception(Exception { flavor: ExceptionType::Return,
                                             payload: Box::new(params[0].clone()),
                                             stack: Vec::new() })
         },

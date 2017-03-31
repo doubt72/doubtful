@@ -12,8 +12,28 @@
 # unterminated recursion (i.e., don't do this):
 # pow(a, b):?(=(b,0),1,*(a,pow(a,-(b,1))));;
 
-# Do this instead (use ~ in a previous statement):
+# Do this instead (i.e., use ~ in a previous statement):
 pow(a, b):?(=(b,0),~(1),nil);*(a,pow(a,-(b,1)));;
+
+len(list):?(=(list,nil),~(0),nil);+(1,len(cdr(list)));;
+
+# Naive implementation that explodes on empty lists
+truncate(list):
+  ?(=(1,len(list)),~([]),nil);
+  ?(=(2,len(list)),~([car(list)]),nil);
+  +([car(list)],car(truncate(cdr(list))));;
+
+# Naive implementation that doesn't worry about arguments out of range
+sub(list,start,range):
+  ?(&(=(start,0),=(range,len(list))),~(list),nil);
+  ?(>(start,0),
+    sub(cdr(list),-(start,1),range),
+    sub(truncate(list),start,-(range,1)));;
+
+@(list,func):
+  >>(string(list));
+  ?(=(cdr(list),nil),~([car(list)]),nil);
+  +([car(list)],car(@(cdr(list),func)));;
 
 ### Our testing harness:
 
@@ -24,9 +44,9 @@ succeed(msg):
 fail(a, b, msg):
   l1:+("- : ", msg);;
   l2:+("
-  : expected : ", string(a));;
+  : expected : ", string(b));;
   l3:+("
-  : got      : ", string(b));;
+  : got      : ", string(a));;
   +(l1,+(l2,l3));;
 
 assert(a, b, msg):
@@ -56,7 +76,7 @@ assert(test_02(1), 1, "inner functions work");
 
 ### Anonymous functions:
 
-# TODO: figure out why this doesn't work (scoping error?)
+# TODO: figure out why this doesn't work (scoping messed up, probably)
 test_04(a)::a;;;
 #assert($(test_04(1)), 1, "call of function that returns function works");
 
@@ -109,20 +129,20 @@ assert(catch(test_07), ["error", "error", ["test_07"]],
   "catch gets call stack");
 
 test_08:test_07;;
-assert(catch(test_07), ["error", "error", ["test_08", "test_07"]],
+assert(catch(test_08), ["error", "error", ["test_07", "test_08"]],
   "catch gets nested call stack");
 
-assert(catch(+(-(raise("error"), 1), 1)), ["error", "error", ["-", "+"]],
+assert(catch(+(-(raise("error"), 1), 1)), ["error", "error", []],
   "exception passes through functions");
-assert(catch(string(raise("error"))), ["error", "error", ["string"]],
+assert(catch(string(raise("error"))), ["error", "error", []],
   "exception passes through string, can't simply change type");
-assert(catch(?(raise("error"), true, false)), ["error", "error", ["?"]],
+assert(catch(?(raise("error"), true, false)), ["error", "error", []],
   "exception passes through ?");
 assert(catch(?(true, raise("error"), false)), ["error", "error", []],
-  "exception doesn't pass through ? when returned");
-assert(catch(?(false, raise("error"), false)), false,
+  "exception pass esthrough ? when returned");
+assert(?(false, raise("error"), false), false,
   "exception doesn't pass through ? when not returned");
-assert(catch(?(true, true, raise("error"))), true,
+assert(?(true, true, raise("error")), true,
   "exception doesn't pass through ? when not returned");
 
 # TODO: undefined function
@@ -261,6 +281,7 @@ assert(cdr([1]), nil, "cdr works on single entry list");
 ### Composed list operations:
 
 assert(len([1, 2, 3]), 3, "len works on list");
+assert(truncate([1, 2, 3, 4]), [1, 2, 3], "truncate works on list");
 assert(sub([1, 2, 3, 4], 1, 2), [2, 3], "sub works");
 
 test_09:(a):+(a, 1);;;
